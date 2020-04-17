@@ -24,7 +24,7 @@ predict(model,df, type = "raw") #gives probabilities
 
 
 #NYT Example
-```{r NYT}
+
 ######################
 
 # Loading the Data from the NYT API
@@ -44,20 +44,39 @@ predict(model,df, type = "raw") #gives probabilities
 ######################
 
 #NYT Example
-
+```{r NYT}
 library(tm) #text mining library provides the stopwords() function
 library(tidyr)
 library(plyr)
 library(jsonlite)
 library(dplyr)
 library(tidyverse)
+library(class)
+library(caret)
+library(e1071)
+library(ggplot2)
+library(plotly)
 
-NYTIMES_KEY = "OG89fUubcS8FXofVrLA4dmIOHh5omiFa" #Your Key Here … get from NTY API website
-
+NYTIMES_KEY = "FLATz6I7PRFS23jHX88567oG0Al46BW8" #Your Key Here … get from NTY API website
+```
+```{r}
 # Let's set some parameters
 term <- "Central+Park+Jogger" # Need to use + to string together separate words
 begin_date <- "19900419"
 end_date <- "19900619"
+```
+
+```{r}
+#Alternate search terms
+term <- "Data+Science" 
+
+begin_date <- "20180901"
+
+end_date <- "20190502"
+```
+
+
+```{r}
 
 baseurl <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",term,
                   "&begin_date=",begin_date,"&end_date=",end_date,
@@ -79,8 +98,12 @@ for(i in 0:maxPages){
 
 allNYTSearch <- rbind_pages(pages)
 
+```
 
 #Segmentation
+```{r NYT}
+
+allNYTSearch$response.docs.type_of_material
 
 # Visualize coverage by section
 allNYTSearch %>% 
@@ -103,10 +126,10 @@ allNYTSearch[!is.na(allNYTSearch$NewsOrOther),] %>%
   ggplot() +
   geom_bar(aes(y=percent, x=NewsOrOther, fill=NewsOrOther), stat = "identity") + coord_flip()
 
-
+```
 
 #Train and Test Split 70%/30%
-
+```{r}
 set.seed(2)
 trainInd = sample(seq(1,dim(allNYTSearch)[1],1),round(.7*dim(allNYTSearch)[1]))
 allNYTSearchTrain = allNYTSearch[trainInd,]
@@ -136,7 +159,9 @@ Pnews_word = function(key_word, trainingSet, alphaLaplace = 1, betaLaplace = 1) 
   
   return(pNewsGivenKW)
 }
+```
 
+```{r}
 theScoreHolderNews = c()
 theScoreHolderOther = c()
 articleScoreNews = 0;
@@ -151,7 +176,7 @@ for (i in 1 : dim(allNYTSearchTest)[1])  #This loop iterates over the articles i
 
 #The [^[:alnum:] ] replaces all non alphanumeric characters with nulls.  
 theText = unlist(str_split(str_replace_all(allNYTSearchTest[i,]$response.docs.headline.main,"[^[:alnum:] ]", ""), stringr::boundary("word"))) #Take out all but alpha numeric characters from search string ... theText holds each word in the headline as its own word.  
-
+}
 # stopwords() #from package tm
 wordsToTakeOut = stopwords()
 
@@ -171,13 +196,20 @@ importantWords = theText[!str_detect(theText,regex(wordsToTakeOut,ignore_case = 
   }
   theScoreHolderNews[i] = articleScoreNews
   theScoreHolderOther[i] = articleScoreOther
-}
+```
 
+```{r}
 # Classify the aricle as News or Other based on a given piece of information from the article.
+theScoreHolderNews
+theScoreHolderOther
+
 allNYTSearchTest$Classified = ifelse(theScoreHolderNews > theScoreHolderOther,"News","Other")
 
+head(allNYTSearchTest)
 #Confusion Matrix
-table(allNYTSearchTest$Classified,allNYTSearchTest$NewsOrOther) #Actual in Columns
+tableNYT <- table(allNYTSearchTest$Classified,allNYTSearchTest$NewsOrOther)
+#confusionMatrix(tableNYT)
+#Actual in Columns
 confusionMatrix(factor(allNYTSearchTest$Classified),factor(allNYTSearchTest$NewsOrOther))
 
 ```
@@ -246,6 +278,8 @@ dnorm(68,69.57463,2.405437)*dnorm(135,151.6851,8.276395)*.5/(dnorm(68,69.57463,2
 model = naiveBayes(dfMF[,c(1,2)],dfMF$MorF)
 predict(model,data.frame(height = 68, weight = 135))
 predict(model,data.frame(height = 68, weight = 135), type = "raw")
+
+predict(model,data.frame(height = 67.5, weight = 141), type = "raw")
 ```
 
 
@@ -439,17 +473,17 @@ masterAcc = matrix(nrow = iterations, ncol = numks)
   
 for(j in 1:iterations)
 {
-accs = data.frame(accuracy = numeric(60), k = numeric(60))
-trainIndices = sample(1:dim(mpg)[1],round(splitPerc * dim(mpg)[1]))
-train = mpg[trainIndices,]
-test = mpg[-trainIndices,]
-for(i in 1:numks)
-{
-  classifications = knn(train[,c(8,9)],test[,c(8,9)],as.factor(train$cyl), prob = TRUE, k = i)
-  table(as.factor(test$cyl),classifications)
-  CM = confusionMatrix(table(as.factor(test$cyl),classifications))
-  masterAcc[j,i] = CM$overall[1]
-}
+  accs = data.frame(accuracy = numeric(60), k = numeric(60))
+  trainIndices = sample(1:dim(mpg)[1],round(splitPerc * dim(mpg)[1]))
+  train = mpg[trainIndices,]
+  test = mpg[-trainIndices,]
+  for(i in 1:numks)
+  {
+    classifications = knn(train[,c(8,9)],test[,c(8,9)],as.factor(train$cyl), prob = TRUE, k = i)
+    table(as.factor(test$cyl),classifications)
+    CM = confusionMatrix(table(as.factor(test$cyl),classifications))
+    masterAcc[j,i] = CM$overall[1]
+  }
 
 }
 

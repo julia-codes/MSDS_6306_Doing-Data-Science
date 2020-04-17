@@ -22,7 +22,7 @@ dfMPG = data.frame(MPG = c(42,40,38,28,32,30,18,20,22), Weight = c(1,1,1,2,2,2,3
 dfMPG %>% ggplot(aes(y = MPG, x = Weight)) + geom_point()
 
 # set the yintercept and slope so we can change later to see the effects on the SSE
-yint = 50.1
+yint = 50.00001
 slope = -10
 
 #Create the residual: observed - expected
@@ -137,12 +137,14 @@ fit = lm(MPG~Weight, data = dfMPG)
 summary(fit)
 confint(fit)
 
+print ('Intercept')
 #Intercept
 tstat = 50/1.6330 #beta_0_hat / SE(beta_0_hat)
 pvalue = (1-pt(tstat,7)) * 2 # Mult by 2 since 2 sided test
 tstat
 pvalue
 
+print ('Slope')
 #Slope
 tstat = -10/.7559 #beta_0_hat / SE(beta_0_hat)
 pvalue = (pt(tstat,7)) * 2 # Mult by 2 since 2 sided test

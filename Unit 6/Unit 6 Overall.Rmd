@@ -9,16 +9,24 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Unit 6 KNN and K-Means
+# packages
 ```{r}
 #install package and load library
+#install.packages("knitr")
 #install.packages("class")
 #install.packages("caret")
 #install.packages("e1071")
+#install.packages("tidyverse")
+#install.packages("plotly")
 library(class)
 library(caret)
 library(e1071)
+library(ggplot2)
+library(plotly)
 
+```
+# Unit 6 KNN and K-Means
+```{r}
 # Simple Example Credit Rating as a Function of income and debt
 
 dfTrain = data.frame(income = c(34,67,70,110,89,90,102,104,110,120,170), 
@@ -36,6 +44,42 @@ knn(dfTrain[,1:2], dfTest, dfTrain$Qualify, k = 5, prob = TRUE)
 #Iris Example Classification
 ```{r}
 irisVersVirg = iris %>% filter(Species == "versicolor" | Species == "virginica")
+sepalVersVirg = irisVersVirg %>% select(c("Sepal.Length","Sepal.Width"))
+dfTest = data.frame( Sepal.Length= 6.2, Sepal.Width = 2.8)
+
+knnIrisSpeciesViaSepalLengthAndWidth <- function (l,w, kValue){
+  print("Question from Function")
+  df = data.frame( Sepal.Length= l, Sepal.Width = w)
+  knn(sepalVersVirg, df, irisVersVirg$Species, k = kValue, prob = TRUE)
+}
+
+print('K=5 Species Classification')
+knn(sepalVersVirg, dfTest, irisVersVirg$Species, k = 5, prob = TRUE)
+print("")
+print("K=15 Species Classification")
+knn(sepalVersVirg, dfTest, irisVersVirg$Species, k = 15, prob = TRUE)
+
+dfQ1 = data.frame( Sepal.Length= 6.2, Sepal.Width = 2.8)
+
+print("Question 1 Output - K5")
+knnIrisSpeciesViaSepalLengthAndWidth(6.1,2.5, 5)
+
+print("Question 1 Output - K15")
+knnIrisSpeciesViaSepalLengthAndWidth(6.1,2.5, 15)
+
+print("Question 2 Output - K5")
+knnIrisSpeciesViaSepalLengthAndWidth(4.9, 6.2, 5)
+
+print("Question 2 Output - K15")
+knnIrisSpeciesViaSepalLengthAndWidth(4.9, 6.2, 15)
+
+```
+
+
+
+
+
+```{r}
 
 df = data.frame(Sepal.Length = 6.20 , Sepal.Width = 2.80 )
 knn(irisVersVirg[,c(1,2)], df, irisVersVirg$Species, k = 5, prob = TRUE)
@@ -64,6 +108,11 @@ irisVersVirg %>% ggplot(aes(x = Sepal.Length,Sepal.Width,color = Species)) + geo
 classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 3)
 table(classifications,test$Species)
 confusionMatrix(table(classifications,test$Species))
+
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 5)
+table(classifications,test$Species)
+confusionMatrix(table(classifications,test$Species))
+
 
 # k = 5
 classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 5)
@@ -127,6 +176,13 @@ MeanAcc = colMeans(masterAcc)
 plot(seq(1,numks,1),MeanAcc, type = "l")
 ```
 
+```{r}
+Emails = data.frame(Predicted = c("Spam","Ham","Ham", "Ham", "Ham", "Spam", "Ham", "Spam", "Ham", "Spam"), Actual = c("Spam", "Spam", "Ham", "Ham", "Spam", "Ham", "Spam","Ham","Spam","Spam" ))
+
+table(Emails)
+```
+
+
 #Internal Cross Validation
 ```{r}
 # Simple Example Credit Rating as a Function of income and debt
@@ -136,6 +192,13 @@ CreditRating = c(750,680,670,675,710,690,715,720,650,710,720),
 Qualify = c("Yes","No","No","Yes","No","No","Yes","Yes","No","Yes","Yes"))
 
 knn.cv(df[,1:2], df$Qualify, k = 3)
+```
+
+```{r}
+iris150 <-head(irisVersVirg,150)
+foldedIris <- knn.cv(iris150[,1:2], irisVersVirg$Species, k=90)
+confusedIris <- data.frame(predicted= foldedIris , actual = irisVersVirg$Species)
+confusionMatrix(table(confusedIris))
 ```
 
 
@@ -243,6 +306,8 @@ knn(iris[,c(1,2)], df, iris$Species, k = 15, prob = TRUE)
 df = data.frame(Sepal.Length = 5.5 , Sepal.Width = 3.25 )
 knn(iris[,c(1,2)], df, iris$Species, k = 3, prob = TRUE)
 knn(iris[,c(1,2)], df, iris$Species, k = 15, prob = TRUE)
+
+knn(iris[,c(1,2)], df, iris$Species, k = 50, prob = TRUE)
 ```
 
 # Archeology
@@ -259,6 +324,118 @@ knn(pottery[,1:5],QOI,pottery$Site, prob = TRUE, k = 5)
 
 
 #For Live Session
+
+## Titanic
+
+Hint: This is not trivial. I recommend that you use the jsonlite package (fromJSON()) and RCurl package (getURL()) to access the data. (We covered this in Unit 4).  
+Try your best to access the data using the URL.  You may also find the data (titanic_train.csv) on github.  We will go over this data ingestion in live session. 
+
+```{r}
+library(httr)
+library(jsonlite)
+
+base <- "https://public.opendatasoft.com/api/"
+endpoint <- "records/1.0/search/"
+query <- '?dataset=titanic-passengers&rows=2000&facet=survived&facet=pclass&facet=sex&facet=age&facet=embarked'
+
+call <- paste(base,endpoint,query, sep="")
+get_passengers <- GET(call)
+get_passengers_text1 <- content(get_passengers, "text")
+get_passengers_json1 <- jsonlite::fromJSON(get_passengers_text1, flatten = FALSE)
+fields <- get_passengers_json1$records$fields
+```
+
+```{r}
+
+passengers = fields %>% select(c("pclass", "age", "embarked", "fare","sex","survived"))
+passengers_ageClass = fields %>% select(c("pclass", "age","survived"))
+passengers
+```
+clean up passengers
+```{r}
+summary(passengers_ageClass)
+
+clean_passengers <- na.omit(passengers_ageClass) 
+#clean_passengers <- passengers_ageClass
+summary(clean_passengers)
+
+```
+
+
+
+
+Use KNN to classify those who survived and died based on Age and class.
+
+```{r}
+#check for best k
+accs = data.frame(accuracy = numeric(30), k = numeric(30))
+
+for(i in 1:30)
+{
+  classifications = knn.cv(clean_passengers[,c(1,2)], clean_passengers$survived, k = i, prob = TRUE)
+  table(clean_passengers$survived,classifications)
+  CM = confusionMatrix(table(clean_passengers$survived,classifications))
+  accs$accuracy[i] = CM$overall[1]
+  accs$k[i] = i
+}
+plot(accs$k,accs$accuracy, type = "l", xlab="K Value", ylab = "Accuracy") %>% title(main="K Accuracy for Knn.CV")
+```
+
+```{r}
+
+survival <-knn.cv(clean_passengers[,c(1,2)], clean_passengers$survived, k = 6, prob = TRUE)
+confusionMatrix(table(clean_passengers$survived,survival), positive = 'Yes')
+survival <-knn.cv(clean_passengers[,c(1,2)], clean_passengers$survived, k = 13, prob = TRUE)
+confusionMatrix(table(clean_passengers$survived,survival), positive = 'Yes')
+```
+
+
+Use your age and predict your survival based on each of the ticket classes. 
+```{r}
+for(i in 1:3)
+{
+  df = data.frame(pclass= i, age=30)
+  iSurvived <- knn(clean_passengers[,c(1,2)],df, clean_passengers$survived, k = 6, prob = TRUE)
+  print(paste("Test passenger Aged 30, with class ticket ", i, " survived?"))
+  print(iSurvived)
+
+}
+
+```
+
+
+Use your model to classify the 418 randomly selected passengers in the test set (titanic_test.csv) on github.    
+```{r}
+testDf = read.csv(file.choose(),header = TRUE)
+testDf
+```
+```{r}
+  testPassengers_orig<- df %>% select(c("Pclass", "Age"))
+  testPassengers<- na.omit(testPassengers_orig)
+  classifiedPassengers <- knn(clean_passengers[,c(1,2)],testPassengers[,c(1,2)], clean_passengers$survived, k = 6, prob = TRUE)
+  table(classifiedPassengers, testPassengers$Pclass)
+
+```
+
+Create a confusion matrix and calculate the accuracy, misclassification rate, sensitivity and specificity.   Be prepared to explain these statistics. (It is ok if you have questions here… we will answer them in live session … just do your best in the time allotted.) 
+```{r}
+splitPerc = .70
+trainIndices = sample(1:dim(clean_passengers)[1],round(splitPerc * dim(clean_passengers)[1]))
+train = clean_passengers[trainIndices,]
+test = clean_passengers[-trainIndices,]
+train
+test
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$survived, prob = TRUE, k = 6)
+table(classifications,test$survived)
+confusionMatrix(table(classifications,test$survived))
+```
+
+
+
+
+
+
+
 ```{r}
 #Use a 70 - 30 train/test split to use cross validation to
 #tune the hyperparameter k
@@ -268,11 +445,11 @@ knn(pottery[,1:5],QOI,pottery$Site, prob = TRUE, k = 5)
 
 set.seed(1)
 iterations = 500
-numks = 60
-splitPerc = .95
+numks = 90
+splitPerc = .70
 
 masterAcc = matrix(nrow = iterations, ncol = numks)
-
+iris
 for(j in 1:iterations)
 {
   trainIndices = sample(1:dim(iris)[1],round(splitPerc * dim(iris)[1]))
@@ -280,21 +457,53 @@ for(j in 1:iterations)
   test = iris[-trainIndices,]
   for(i in 1:numks)
   {
-    classifications = knn(train[,c(1,3)],test[,c(1,3)],train$Species, prob = TRUE, k = i)
+    classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = i)
     table(classifications,test$Species)
     CM = confusionMatrix(table(classifications,test$Species))
     masterAcc[j,i] = CM$overall[1]
   }
   
 }
-
+```
+```{r}
 MeanAcc = colMeans(masterAcc)
 
-plot(seq(1,numks,1),MeanAcc, type = "l")
+plot(seq(1,numks,1),MeanAcc, type = "l", xlab="k", main="Iris Species Prediction K tests for 70/30 split")
+
+which.max(MeanAcc)
+max(MeanAcc)
+```
+```{r}
+set.seed(1)
+iterations = 500
+numks = 90
+
+masterAcc = matrix(nrow = iterations, ncol = numks)
+
+for(j in 1:iterations)
+{
+  for(i in 1:numks)
+  {
+    classifications = knn.cv(iris[,1,2],iris$Species, prob = TRUE, k = i)
+    table(classifications,iris$Species)
+    CM = confusionMatrix(table(classifications,iris$Species))
+    masterAcc[j,i] = CM$overall[1]
+  }
+  
+}
+```
+
+```{r}
+MeanAcc = colMeans(masterAcc)
+
+plot(seq(1,numks,1),MeanAcc, type = "l", xlab="k", main="Iris Species Prediction K tests for Leave One Out")
 
 which.max(MeanAcc)
 max(MeanAcc)
 
+```
+
+```{r}
 
 
 # FOR LIVE SESSION LEAVE 1 OUT KNN IRIS

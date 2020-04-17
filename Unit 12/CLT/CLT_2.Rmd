@@ -61,4 +61,14 @@ sd(xbar_holder2) #standard deviation of distribuion 2
 
 ```
 
+```{r}
+install.packages('rsconnect')
+
+```
+
+```{r}
+rsconnect::setAccountInfo(name='julia-codes',
+			  token='8283C342DE7A19745B86143FCE3AC3BD',
+			  secret='<SECRET>')
+```
 
